@@ -1,0 +1,110 @@
+service: coke-day
+
+provider:
+  name: aws
+  runtime: go1.x
+  region: us-east-1
+  environment:
+    REGION: "us-east-1"
+    SALT: 'thisIsJustForThisTest' # Use AWS Parameter Store
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:us-east-1:*:table/*"
+
+package:
+  exclude:
+    - ./**
+  include:
+    - ./bin/**
+
+functions:
+  # User Endpoints
+  authorize:
+    handler: bin/auth
+
+  login-user:
+    handler: bin/users
+    environment:
+      DB_TABLE: CokeDay
+    events:
+      - http:
+          path: register
+          method: post
+          cors: true
+
+  register-user:
+    handler: bin/users
+    environment:
+      DB_TABLE: CokeDay
+    events:
+      - http:
+          path: login
+          method: post
+          cors: true
+
+  # Reservations Endpoints
+  create-item:
+    handler: bin/reservations
+    environment:
+      DB_TABLE: CokeDay
+    events:
+      - http:
+          path: reservations
+          method: post
+          cors: true
+          authorizer:
+            name: authorize
+            resultTtlInSeconds: 0
+
+  query-items:
+    handler: bin/reservations
+    environment:
+      DB_TABLE: CokeDay
+    events:
+      - http:
+          path: reservations
+          method: get
+          cors: true
+          authorizer:
+            name: authorize
+            resultTtlInSeconds: 0
+
+  delete-item:
+    handler: bin/reservations
+    environment:
+      DB_TABLE: CokeDay
+    events:
+      - http:
+          path: reservations/rooms/{room}/times/{time}
+          method: delete
+          cors: true
+          authorizer:
+            name: authorize
+            resultTtlInSeconds: 0
+
+resources:
+  Resources:
+    cokeDayTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: CokeDay
+        AttributeDefinitions:
+          - AttributeName: pk
+            AttributeType: S
+          - AttributeName: sk
+            AttributeType: S
+        KeySchema:
+          - AttributeName: pk
+            KeyType: HASH
+          - AttributeName: sk
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
