@@ -1,9 +1,10 @@
 package model
 
 import (
-	"errors"
+	"fmt"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 	"github.com/coke-day/pkg/datastore"
+	"github.com/coke-day/pkg/utils"
 	"github.com/coke-day/pkg/validators"
 	"strings"
 )
@@ -36,11 +37,10 @@ func (r *ItemRepository) Search(room, time, userEmail string) ([]Reservation, er
 			expression.Name("sk").BeginsWith(getSKStartingPart()+time),
 		)
 	} else {
-		emailParts := strings.Split(userEmail, "@")
-		if len(emailParts) < 2 {
-			return []Reservation{}, errors.New("invalid mail")
+		domain, err := utils.GetDomain(userEmail)
+		if err != nil {
+			return []Reservation{}, fmt.Errorf("fail to get domain: %v", err)
 		}
-		domain := emailParts[1]
 		if strings.Contains(domain, validators.CokeDomain) {
 			filt = expression.And(
 				expression.Name("pk").BeginsWith(getPKStartingPart()+"C"),

@@ -34,7 +34,7 @@ func TestCanFetchClient(t *testing.T) {
 		HTTPMethod:     "GET",
 	}
 	request.RequestContext.Authorizer = map[string]interface{}{
-		"mail": "Bob@coke.com.us",
+		"email": "Bob@coke.com.us",
 	}
 	h := &Handler{&MockItemRepository{}, validators.CreateValidator()}
 	router := createRoomRouting(h)
@@ -49,7 +49,7 @@ func TestCanCreateClient(t *testing.T) {
 		HTTPMethod: "POST",
 	}
 	request.RequestContext.Authorizer = map[string]interface{}{
-		"mail": "Bob@coke.com.us",
+		"email": "Bob@coke.com.us",
 	}
 	h := &Handler{&MockItemRepository{}, validators.CreateValidator()}
 	router := createRoomRouting(h)
@@ -63,7 +63,7 @@ func TestCanFetchClients(t *testing.T) {
 		HTTPMethod: "GET",
 	}
 	request.RequestContext.Authorizer = map[string]interface{}{
-		"mail": "Bob",
+		"email": "Bob",
 	}
 	h := &Handler{&MockItemRepository{}, validators.CreateValidator()}
 	router := createRoomRouting(h)
@@ -78,7 +78,7 @@ func TestHandlerInvalidJSON(t *testing.T) {
 		Body:       "",
 	}
 	request.RequestContext.Authorizer = map[string]interface{}{
-		"mail": "Bob",
+		"email": "Bob",
 	}
 	h := &Handler{&MockItemRepository{}, validators.CreateValidator()}
 	router := createRoomRouting(h)

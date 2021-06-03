@@ -3,6 +3,7 @@ package validators
 import (
 	"errors"
 	"fmt"
+	"github.com/coke-day/pkg/utils"
 	"gopkg.in/go-playground/validator.v9"
 	"strconv"
 	"strings"
@@ -26,11 +27,10 @@ func CreateValidator() validator.Validate {
 
 func addEmailCustomValidation(v *validator.Validate) {
 	_ = v.RegisterValidation("emailCustom", func(fl validator.FieldLevel) bool {
-		flParts := strings.Split(fl.Field().String(), "@")
-		if len(flParts) < 2 {
+		domain, err := utils.GetDomain(fl.Field().String())
+		if err != nil {
 			return false
 		}
-		domain := flParts[1]
 		_, isValid := validDomain[domain]
 		return isValid
 	})

@@ -3,13 +3,16 @@ package main
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"github.com/coke-day/pkg/criptography"
+	"github.com/coke-day/pkg/jwt"
 	"github.com/coke-day/pkg/validators"
 	"gopkg.in/go-playground/validator.v9"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/coke-day/functions/users/model"
@@ -28,6 +31,7 @@ type Handler struct {
 	repository UserRepository
 	salt       string
 	validator  validator.Validate
+	jwtHandler jwt.JWT
 }
 
 const (
@@ -97,9 +101,14 @@ func (h *Handler) Login(request httpHelper.Req) (httpHelper.Res, error) {
 		return httpHelper.ErrResponse(errInvalidLogin, http.StatusNotFound)
 	}
 
-	// TODO: Return Token ID with time expiration
+	// Create JWT Token
+	token, err := h.jwtHandler.CreateJWT(user.Email)
+	if err != nil {
+		return httpHelper.Res{}, fmt.Errorf("fail to create token: %v", err)
+	}
+
 	return httpHelper.Response(map[string]interface{}{
-		"success": true,
+		"bearer-token": token,
 	}, http.StatusOK)
 }
 
@@ -122,8 +131,14 @@ func main() {
 	// Get Validator
 	v := validators.CreateValidator()
 
+	// Get JWT Secret
+	jwtSecret := os.Getenv("JWTSECRET")
+
+	// Create JWT
+	jwtHandler := jwt.NewJWT(jwtSecret, "u-should-hire-me", 3*time.Hour)
+
 	// Create the handler instance, with the repository
-	handler := &Handler{repository, salt, v}
+	handler := &Handler{repository, salt, v, jwtHandler}
 
 	router := createUserRouting(handler)
 

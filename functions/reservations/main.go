@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"github.com/coke-day/functions/reservations/model"
+	"github.com/coke-day/pkg/utils"
 	"github.com/coke-day/pkg/validators"
 	"gopkg.in/go-playground/validator.v9"
 	"log"
@@ -38,7 +39,7 @@ func (h *Handler) Search(request httpHelper.Req) (httpHelper.Res, error) {
 	// Getting parameters
 	room := request.QueryStringParameters["room"]
 	time := request.QueryStringParameters["time"]
-	mail := request.RequestContext.Authorizer["mail"].(string)
+	mail := request.RequestContext.Authorizer["email"].(string)
 
 	// Searching
 	items, err := h.repository.Search(room, time, mail)
@@ -54,7 +55,7 @@ func (h *Handler) Search(request httpHelper.Req) (httpHelper.Res, error) {
 // Store a new item
 func (h *Handler) Store(request httpHelper.Req) (httpHelper.Res, error) {
 	var reservation model.Reservation
-	reservation.UserEmail = request.RequestContext.Authorizer["mail"].(string)
+	reservation.UserEmail = request.RequestContext.Authorizer["email"].(string)
 	if err := httpHelper.ParseBody(request, &reservation); err != nil {
 		return httpHelper.ErrResponse(err, http.StatusBadRequest)
 	}
@@ -67,11 +68,10 @@ func (h *Handler) Store(request httpHelper.Req) (httpHelper.Res, error) {
 
 	// Validating email domain and room name
 	reservation.RoomName = strings.ToUpper(reservation.RoomName)
-	emailParts := strings.Split(reservation.UserEmail, "@")
-	if len(emailParts) < 2 {
+	domain, err := utils.GetDomain(reservation.UserEmail)
+	if err != nil {
 		return httpHelper.ErrResponse(errInvalidRoom, http.StatusInternalServerError)
 	}
-	domain := emailParts[1]
 	if !(strings.Contains(domain, validators.CokeDomain) && strings.HasPrefix(reservation.RoomName, "C") ||
 		strings.Contains(domain, validators.PepsiDomain) && strings.HasPrefix(reservation.RoomName, "P")) {
 		return httpHelper.ErrResponse(errInvalidRoom, http.StatusForbidden)
@@ -103,7 +103,7 @@ func (h *Handler) Delete(request httpHelper.Req) (httpHelper.Res, error) {
 	reservation := model.Reservation{
 		RoomName:  room,
 		Time:      time,
-		UserEmail: request.RequestContext.Authorizer["mail"].(string),
+		UserEmail: request.RequestContext.Authorizer["email"].(string),
 	}
 
 	// Validating body
@@ -154,13 +154,6 @@ func main() {
 // DELETE calls the Delete method.
 func createRoomRouting(handler *Handler) func(request httpHelper.Req) (httpHelper.Res, error) {
 	router := func(request httpHelper.Req) (httpHelper.Res, error) {
-		if _, ok := request.RequestContext.Authorizer["mail"]; !ok {
-			return httpHelper.Res{
-				Body:       "Unauthorized: Must be an authorized user with a mail",
-				StatusCode: http.StatusUnauthorized,
-			}, nil
-		}
-
 		switch request.HTTPMethod {
 		case "GET":
 			return handler.Search(request)
