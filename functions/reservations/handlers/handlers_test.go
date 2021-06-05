@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"github.com/coke-day/pkg/validators"
@@ -12,11 +12,11 @@ import (
 
 type MockItemRepository struct{}
 
-func (r *MockItemRepository) Delete(item *model.Reservation) error {
+func (r *MockItemRepository) Delete(item model.Reservation) error {
 	return nil
 }
 
-func (r *MockItemRepository) Store(item *model.Reservation) error {
+func (r *MockItemRepository) Store(item model.Reservation) error {
 	return nil
 }
 
@@ -24,11 +24,11 @@ func (r *MockItemRepository) Search(room, time, userDomain string) ([]model.Rese
 	return []model.Reservation{}, nil
 }
 
-func (r *MockItemRepository) Get(item *model.Reservation) (*model.ReservationPersistence, error) {
+func (r *MockItemRepository) Get(item model.Reservation) (*model.Reservation, error) {
 	return nil, nil
 }
 
-func TestCanFetchClient(t *testing.T) {
+func TestCanFetchReservationsWithID(t *testing.T) {
 	request := httpdelivery.Req{
 		PathParameters: map[string]string{"id": "123"},
 		HTTPMethod:     "GET",
@@ -37,13 +37,13 @@ func TestCanFetchClient(t *testing.T) {
 		"email": "Bob@coke.com.us",
 	}
 	h := &Handler{&MockItemRepository{}, validators.CreateValidator()}
-	router := createRoomRouting(h)
+	router := h.CreateRoomRouting()
 	response, err := router(request)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, response.StatusCode)
 }
 
-func TestCanCreateClient(t *testing.T) {
+func TestCanCreateReservations(t *testing.T) {
 	request := httpdelivery.Req{
 		Body:       `{ "room_name": "C01", "time": "19"}`,
 		HTTPMethod: "POST",
@@ -52,13 +52,13 @@ func TestCanCreateClient(t *testing.T) {
 		"email": "Bob@coke.com.us",
 	}
 	h := &Handler{&MockItemRepository{}, validators.CreateValidator()}
-	router := createRoomRouting(h)
+	router := h.CreateRoomRouting()
 	response, err := router(request)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, response.StatusCode)
 }
 
-func TestCanFetchClients(t *testing.T) {
+func TestCanFetchReservations(t *testing.T) {
 	request := httpdelivery.Req{
 		HTTPMethod: "GET",
 	}
@@ -66,7 +66,7 @@ func TestCanFetchClients(t *testing.T) {
 		"email": "Bob",
 	}
 	h := &Handler{&MockItemRepository{}, validators.CreateValidator()}
-	router := createRoomRouting(h)
+	router := h.CreateRoomRouting()
 	response, err := router(request)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, response.StatusCode)
@@ -81,7 +81,7 @@ func TestHandlerInvalidJSON(t *testing.T) {
 		"email": "Bob",
 	}
 	h := &Handler{&MockItemRepository{}, validators.CreateValidator()}
-	router := createRoomRouting(h)
+	router := h.CreateRoomRouting()
 	response, _ := router(request)
 	assert.Equal(t, http.StatusBadRequest, response.StatusCode)
 }

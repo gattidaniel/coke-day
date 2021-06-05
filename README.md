@@ -26,4 +26,4 @@ To deploy it just run `make` in terminal (serverless must be installed and confi
 * Configure a CORS policy and API throttling in the API Gateway.
 * Avoid putting salt in serverless.yml  
 * Add local testing
-* Organize the project better, avoid duplicate code
+* Add Fuzzy testing

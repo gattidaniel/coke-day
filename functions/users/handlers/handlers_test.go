@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"github.com/coke-day/functions/users/model"
@@ -15,11 +15,11 @@ import (
 
 type MockUserRepository struct{}
 
-func (r *MockUserRepository) Login(user *model.UserLogin) (*model.UserPersistence, error) {
-	return &model.UserPersistence{Email: "email@coke.com.us", HashPassword: []byte(criptography.HashPassword("123123", "thisIsJustForThisTest"))}, nil
+func (r *MockUserRepository) Login(user model.User) (*model.User, error) {
+	return &model.User{Email: "email@coke.com.us", HashPassword: []byte(criptography.HashPassword("123123", "thisIsJustForThisTest"))}, nil
 }
 
-func (r *MockUserRepository) Register(user *model.UserRegistration) error {
+func (r *MockUserRepository) Register(user model.User) error {
 	return nil
 }
 
@@ -29,16 +29,15 @@ func TestCanLogin(t *testing.T) {
 		HTTPMethod: "POST",
 		Path:       _loginPath,
 	}
-
-	router := createUserRouting(createTestHandler())
+	h := createTestHandler()
+	router := h.CreateUserRouting()
 	response, err := router(request)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, response.StatusCode)
 }
 
-func createTestHandler() *Handler {
-	h := &Handler{&MockUserRepository{}, "thisIsJustForThisTest", validators.CreateValidator(), jwt.NewJWT("123", "issuer", 10*time.Hour)}
-	return h
+func createTestHandler() Handler {
+	return CreateUserHandler(&MockUserRepository{}, "thisIsJustForThisTest", validators.CreateValidator(), jwt.NewJWT("123", "issuer", 10*time.Hour))
 }
 
 func TestCanRegisterClient(t *testing.T) {
@@ -47,7 +46,8 @@ func TestCanRegisterClient(t *testing.T) {
 		HTTPMethod: "POST",
 		Path:       _registerPath,
 	}
-	router := createUserRouting(createTestHandler())
+	h := createTestHandler()
+	router := h.CreateUserRouting()
 	response, err := router(request)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, response.StatusCode)
@@ -57,7 +57,8 @@ func TestHandlerInvalidMethod(t *testing.T) {
 	request := httpdelivery.Req{
 		HTTPMethod: "GET",
 	}
-	router := createUserRouting(createTestHandler())
+	h := createTestHandler()
+	router := h.CreateUserRouting()
 	response, _ := router(request)
 	assert.Equal(t, http.StatusMethodNotAllowed, response.StatusCode)
 }
@@ -68,7 +69,8 @@ func TestHandlerInvalidJSON(t *testing.T) {
 		Body:       "",
 		Path:       _registerPath,
 	}
-	router := createUserRouting(createTestHandler())
+	h := createTestHandler()
+	router := h.CreateUserRouting()
 	response, _ := router(request)
 	assert.Equal(t, http.StatusBadRequest, response.StatusCode)
 }
